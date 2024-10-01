@@ -4,28 +4,31 @@ import joblib
 import streamlit as st
 import google.generativeai as genai
 from dotenv import load_dotenv
+from PIL import Image
+
+# Load environment variables
 load_dotenv()
-GOOGLE_API_KEY=os.environ.get('GOOGLE_API_KEY')
+GOOGLE_API_KEY = "AIzaSyA-ck6Z64xnAkr67pEMOFNNj9VEdpVRFA0"
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# Chat session setup
 new_chat_id = f'{time.time()}'
 MODEL_ROLE = 'ai'
-AI_AVATAR_ICON = '✨'
+AI_AVATAR_ICON = '👗'
 
 # Create a data/ folder if it doesn't already exist
 try:
     os.mkdir('data/')
-except:
-    # data/ folder already exists
+except FileExistsError:
     pass
 
 # Load past chats (if available)
 try:
     past_chats: dict = joblib.load('data/past_chats_list')
-except:
+except FileNotFoundError:
     past_chats = {}
 
-# Sidebar allows a list of past chats
+# Sidebar for past chats
 with st.sidebar:
     st.write('# Past Chats')
     if st.session_state.get('chat_id') is None:
@@ -36,102 +39,80 @@ with st.sidebar:
             placeholder='_',
         )
     else:
-        # This will happen the first time AI response comes in
         st.session_state.chat_id = st.selectbox(
             label='Pick a past chat',
             options=[new_chat_id, st.session_state.chat_id] + list(past_chats.keys()),
             index=1,
-            format_func=lambda x: past_chats.get(x, 'New Chat' if x != st.session_state.chat_id else st.session_state.chat_title),
+            format_func=lambda x: past_chats.get(x, 'New Chat'),
             placeholder='_',
         )
-    # Save new chats after a message has been sent to AI
-    # TODO: Give user a chance to name chat
     st.session_state.chat_title = f'ChatSession-{st.session_state.chat_id}'
 
-st.write('# Chat with Gemini')
+# Main chat section
+st.write('# Chat with Style Maven')
 
-# Chat history (allows to ask multiple questions)
+# Load chat history
 try:
-    st.session_state.messages = joblib.load(
-        f'data/{st.session_state.chat_id}-st_messages'
-    )
-    st.session_state.gemini_history = joblib.load(
-        f'data/{st.session_state.chat_id}-gemini_messages'
-    )
-    print('old cache')
-except:
+    st.session_state.messages = joblib.load(f'data/{st.session_state.chat_id}-st_messages')
+    st.session_state.gemini_history = joblib.load(f'data/{st.session_state.chat_id}-gemini_messages')
+except FileNotFoundError:
     st.session_state.messages = []
     st.session_state.gemini_history = []
-    print('new_cache made')
-st.session_state.model = genai.GenerativeModel('gemini-pro')
+
+# Configure the model to use Gemini Flash 1.5 for visual input
+st.session_state.model = genai.GenerativeModel('gemini-flash-1.5')
 st.session_state.chat = st.session_state.model.start_chat(
     history=st.session_state.gemini_history,
 )
 
-# Display chat messages from history on app rerun
+# Display past messages
 for message in st.session_state.messages:
-    with st.chat_message(
-        name=message['role'],
-        avatar=message.get('avatar'),
-    ):
+    with st.chat_message(name=message['role'], avatar=message.get('avatar')):
         st.markdown(message['content'])
 
-# React to user input
-if prompt := st.chat_input('Your message here...'):
-    # Save this as a chat for later
-    if st.session_state.chat_id not in past_chats.keys():
-        past_chats[st.session_state.chat_id] = st.session_state.chat_title
-        joblib.dump(past_chats, 'data/past_chats_list')
-    # Display user message in chat message container
-    with st.chat_message('user'):
-        st.markdown(prompt)
-    # Add user message to chat history
-    st.session_state.messages.append(
-        dict(
-            role='user',
-            content=prompt,
-        )
-    )
-    ## Send message to AI
-    response = st.session_state.chat.send_message(
-        prompt,
-        stream=True,
-    )
-    # Display assistant response in chat message container
-    with st.chat_message(
-        name=MODEL_ROLE,
-        avatar=AI_AVATAR_ICON,
-    ):
-        message_placeholder = st.empty()
+# Add functionality to upload images
+uploaded_image = st.file_uploader("Upload an outfit image", type=['png', 'jpg', 'jpeg'])
+
+if uploaded_image:
+    # Display the uploaded image
+    image = Image.open(uploaded_image)
+    st.image(image, caption='Your uploaded fashion image', use_column_width=True)
+
+    # Send the image to Gemini Flash 1.5
+    response = st.session_state.chat.send_message(prompt="Analyze this outfit", media=image)
+
+    # Display assistant response to image input
+    with st.chat_message(name=MODEL_ROLE, avatar=AI_AVATAR_ICON):
         full_response = ''
-        assistant_response = response
-        # Streams in a chunk at a time
         for chunk in response:
-            # Simulate stream of chunk
-            # TODO: Chunk missing `text` if API stops mid-stream ("safety"?)
             for ch in chunk.text.split(' '):
                 full_response += ch + ' '
                 time.sleep(0.05)
-                # Rewrites with a cursor at end
-                message_placeholder.write(full_response + '▌')
-        # Write full message with placeholder
-        message_placeholder.write(full_response)
+            st.write(full_response)
 
-    # Add assistant response to chat history
-    st.session_state.messages.append(
-        dict(
-            role=MODEL_ROLE,
-            content=st.session_state.chat.history[-1].parts[0].text,
-            avatar=AI_AVATAR_ICON,
-        )
-    )
+# React to user text input
+if prompt := st.chat_input('Your fashion query here...'):
+    # Display user message
+    with st.chat_message('user'):
+        st.markdown(prompt)
+    
+    # Add user message to chat history
+    st.session_state.messages.append(dict(role='user', content=prompt))
+
+    # Send text input to Gemini Flash 1.5
+    response = st.session_state.chat.send_message(prompt, stream=True)
+
+    # Display assistant response to text input
+    with st.chat_message(name=MODEL_ROLE, avatar=AI_AVATAR_ICON):
+        full_response = ''
+        for chunk in response:
+            for ch in chunk.text.split(' '):
+                full_response += ch + ' '
+                time.sleep(0.05)
+            st.write(full_response)
+
+    # Save chat history
+    st.session_state.messages.append(dict(role=MODEL_ROLE, content=full_response, avatar=AI_AVATAR_ICON))
     st.session_state.gemini_history = st.session_state.chat.history
-    # Save to file
-    joblib.dump(
-        st.session_state.messages,
-        f'data/{st.session_state.chat_id}-st_messages',
-    )
-    joblib.dump(
-        st.session_state.gemini_history,
-        f'data/{st.session_state.chat_id}-gemini_messages',
-    )
+    joblib.dump(st.session_state.messages, f'data/{st.session_state.chat_id}-st_messages')
+    joblib.dump(st.session_state.gemini_history, f'data/{st.session_state.chat_id}-gemini_messages')
