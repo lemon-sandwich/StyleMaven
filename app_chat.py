@@ -1,49 +1,57 @@
 import os
+import openai
 import streamlit as st
-import google.generativeai as genai
 
-# Directly assign the API key
-GEMINI_API_KEY = "AIzaSyC-YV5kSVx5cemVlxzi8rP0NeKg57KqZjs"
+# Configure OpenAI API key
+openai.api_key = "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"
 
-# Configure the Generative AI with the API key
-genai.configure(api_key=GEMINI_API_KEY)
+# Initialize Streamlit app
+st.title("Fashion Assistant Chatbot")
 
-# Create the model
-generation_config = {
-    "temperature": 1,
-    "top_p": 0.95,
-    "top_k": 64,
-    "max_output_tokens": 8192,
-    "response_mime_type": "text/plain",
-}
+# Session state for chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    generation_config=generation_config,
-)
+# Inputs for user details
+age = st.number_input("Age", min_value=1, max_value=120)
+gender = st.selectbox("Gender", ["Select", "Male", "Female", "Other"])
+ethnicity = st.text_input("Ethnicity")
 
-# Streamlit app layout
-st.title("Tailored Fashion Assistant")
+# User input for the chatbot
+user_input = st.text_input("Your fashion-related question:")
 
-# User input fields
-age = st.number_input("Enter your age:", min_value=0, max_value=100, value=23)
-gender = st.selectbox("Select your gender:", ["Male", "Female", "Other"])
-ethnicity = st.text_input("Enter your ethnicity (optional):")
+# Function to reset chat
+def reset_chat():
+    st.session_state.messages = []
 
-# Ask for user query
-user_query = st.text_input("What would you like to know about fashion?")
+# Button to reset chat
+if st.button("Reset Chat"):
+    reset_chat()
 
-# Generate fashion suggestions based on user input
-if st.button("Get Fashion Suggestions"):
-    # Prepare the input for the model
-    user_input = f"Input: Age: {age}, Gender: {gender}, Ethnicity: {ethnicity}, Question: {user_query}"
-    
-    # Generate content using the model
-    response = model.generate_content([
-        user_input,
-        "Output: "
-    ])
+# Display chat history
+if st.session_state.messages:
+    for msg in st.session_state.messages:
+        st.markdown(f"**{msg['role']}**: {msg['content']}")
 
-    # Display the model's response
-    st.write("### Suggestions:")
-    st.write(response.text)
+# Process user input
+if st.button("Ask"):
+    if user_input and gender != "Select" and ethnicity:
+        context = f"You are a fashion assistant. User details: Age: {age}, Gender: {gender}, Ethnicity: {ethnicity}. User question: {user_input}"
+        st.session_state.messages.append({"role": "user", "content": user_input})
+
+        # Call OpenAI API for response
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # Change to the desired model
+            messages=[
+                {"role": "system", "content": "You are a fashion assistant."},
+                {"role": "user", "content": context}
+            ]
+        )
+
+        assistant_message = response['choices'][0]['message']['content']
+        st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+
+        # Display assistant response
+        st.markdown(f"**Assistant**: {assistant_message}")
+    else:
+        st.error("Please fill in all fields before asking.")
