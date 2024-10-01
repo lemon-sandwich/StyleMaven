@@ -1,3 +1,2 @@
-upgrade openai
-openai
+groq
 streamlit==1.29.0
