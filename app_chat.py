@@ -49,7 +49,7 @@ with st.sidebar:
     st.session_state.chat_title = f'ChatSession-{st.session_state.chat_id}'
 
 # Main chat section
-st.write('# Chat with Style Maven')
+st.write('# Chat with Gemini Fashion Assistant')
 
 # Load chat history
 try:
@@ -59,7 +59,7 @@ except FileNotFoundError:
     st.session_state.messages = []
     st.session_state.gemini_history = []
 
-# Configure the model to use Gemini Flash 1.5 for visual input
+# Configure the model to use Gemini Flash 1.5
 st.session_state.model = genai.GenerativeModel('gemini-flash-1.5')
 st.session_state.chat = st.session_state.model.start_chat(
     history=st.session_state.gemini_history,
@@ -78,8 +78,13 @@ if uploaded_image:
     image = Image.open(uploaded_image)
     st.image(image, caption='Your uploaded fashion image', use_column_width=True)
 
-    # Send the image to Gemini Flash 1.5
-    response = st.session_state.chat.send_message(prompt="Analyze this outfit", media=image)
+    # Process image (you might need to adjust based on Gemini Flash 1.5's requirements)
+    # For instance, saving the image and sending a path or converting it to bytes:
+    image_path = f"data/{new_chat_id}_image.png"
+    image.save(image_path)
+
+    # Send the image path as text to Gemini Flash (adjust as per API's image input requirements)
+    response = st.session_state.chat.send_message(f"Analyze the fashion in this image: {image_path}")
 
     # Display assistant response to image input
     with st.chat_message(name=MODEL_ROLE, avatar=AI_AVATAR_ICON):
