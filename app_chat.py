@@ -4,7 +4,6 @@ import joblib
 import streamlit as st
 import google.generativeai as genai
 from dotenv import load_dotenv
-from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -59,8 +58,8 @@ except FileNotFoundError:
     st.session_state.messages = []
     st.session_state.gemini_history = []
 
-# Configure the model to use Gemini Flash 1.5
-st.session_state.model = genai.GenerativeModel('gemini-flash-1.5')
+# Configure the model to use Gemini
+st.session_state.model = genai.GenerativeModel('text-bison-001')  # Change to the desired model ID
 st.session_state.chat = st.session_state.model.start_chat(
     history=st.session_state.gemini_history,
 )
@@ -70,42 +69,25 @@ for message in st.session_state.messages:
     with st.chat_message(name=message['role'], avatar=message.get('avatar')):
         st.markdown(message['content'])
 
-# Add functionality to upload images
-uploaded_image = st.file_uploader("Upload an outfit image", type=['png', 'jpg', 'jpeg'])
-
-if uploaded_image:
-    # Display the uploaded image
-    image = Image.open(uploaded_image)
-    st.image(image, caption='Your uploaded fashion image', use_column_width=True)
-
-    # Process image (you might need to adjust based on Gemini Flash 1.5's requirements)
-    # For instance, saving the image and sending a path or converting it to bytes:
-    image_path = f"data/{new_chat_id}_image.png"
-    image.save(image_path)
-
-    # Send the image path as text to Gemini Flash (adjust as per API's image input requirements)
-    response = st.session_state.chat.send_message(f"Analyze the fashion in this image: {image_path}")
-
-    # Display assistant response to image input
-    with st.chat_message(name=MODEL_ROLE, avatar=AI_AVATAR_ICON):
-        full_response = ''
-        for chunk in response:
-            for ch in chunk.text.split(' '):
-                full_response += ch + ' '
-                time.sleep(0.05)
-            st.write(full_response)
+# Input fields for age, gender, and ethnicity
+age = st.number_input("Enter your age:", min_value=0, max_value=120, value=25)
+gender = st.selectbox("Select your gender:", options=["Male", "Female", "Non-binary", "Prefer not to say"])
+ethnicity = st.selectbox("Select your ethnicity:", options=["Caucasian", "Hispanic", "African American", "Asian", "Other"])
 
 # React to user text input
 if prompt := st.chat_input('Your fashion query here...'):
     # Display user message
     with st.chat_message('user'):
         st.markdown(prompt)
-    
+
     # Add user message to chat history
     st.session_state.messages.append(dict(role='user', content=prompt))
 
-    # Send text input to Gemini Flash 1.5
-    response = st.session_state.chat.send_message(prompt, stream=True)
+    # Prepare the input for the AI response
+    context = f"Age: {age}, Gender: {gender}, Ethnicity: {ethnicity}. User question: {prompt}"
+    
+    # Send text input to the AI model
+    response = st.session_state.chat.send_message(context, stream=True)
 
     # Display assistant response to text input
     with st.chat_message(name=MODEL_ROLE, avatar=AI_AVATAR_ICON):
