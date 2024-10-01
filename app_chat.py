@@ -1,57 +1,69 @@
-import os
-import openai
 import streamlit as st
+from groq import Groq
 
-# Configure OpenAI API key
-openai.api_key = "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"
+# Initialize the Groq client with your API key
+client = Groq(api_key="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")
 
-# Initialize Streamlit app
-st.title("Fashion Assistant Chatbot")
+# Define the system message for the model
+system_message = {
+    "role": "system",
+    "content": "You are an experienced Fashion designer, taking inputs like gender, age, and ethnicity to provide tailored fashion suggestions."
+}
 
-# Session state for chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Inputs for user details
-age = st.number_input("Age", min_value=1, max_value=120)
-gender = st.selectbox("Gender", ["Select", "Male", "Female", "Other"])
-ethnicity = st.text_input("Ethnicity")
-
-# User input for the chatbot
-user_input = st.text_input("Your fashion-related question:")
-
-# Function to reset chat
+# Create a function to reset the chat
 def reset_chat():
     st.session_state.messages = []
+    st.session_state.chat_title = "New Chat"
 
-# Button to reset chat
-if st.button("Reset Chat"):
-    reset_chat()
+# Initialize session state
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+    st.session_state.chat_title = "Fashion Assistant"
+
+# Sidebar for user inputs
+with st.sidebar:
+    st.header("User Inputs")
+    age = st.number_input("Age", min_value=1, max_value=100, value=25)
+    gender = st.selectbox("Gender", options=["Male", "Female", "Other"])
+    ethnicity = st.selectbox("Ethnicity", options=["Asian", "Black", "Hispanic", "White", "Other"])
+    if st.button("Reset Chat"):
+        reset_chat()
+
+# Display chat title
+st.write(f"# {st.session_state.chat_title}")
 
 # Display chat history
-if st.session_state.messages:
-    for msg in st.session_state.messages:
-        st.markdown(f"**{msg['role']}**: {msg['content']}")
+for message in st.session_state.messages:
+    with st.chat_message(name=message['role']):
+        st.markdown(message['content'])
 
-# Process user input
-if st.button("Ask"):
-    if user_input and gender != "Select" and ethnicity:
-        context = f"You are a fashion assistant. User details: Age: {age}, Gender: {gender}, Ethnicity: {ethnicity}. User question: {user_input}"
-        st.session_state.messages.append({"role": "user", "content": user_input})
+# Handle user input
+if user_input := st.chat_input("Ask me anything about fashion..."):
+    # Store user message in the chat history
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Call OpenAI API for response
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Change to the desired model
-            messages=[
-                {"role": "system", "content": "You are a fashion assistant."},
-                {"role": "user", "content": context}
-            ]
-        )
+    # Prepare messages for the API call
+    messages = [
+        system_message,
+        {"role": "user", "content": f"User input - Age: {age}, Gender: {gender}, Ethnicity: {ethnicity}"},
+        {"role": "user", "content": user_input}
+    ]
 
-        assistant_message = response['choices'][0]['message']['content']
-        st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+    # Generate a response from the Groq API
+    completion = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=messages,
+        temperature=1,
+        max_tokens=1024,
+        top_p=1,
+        stream=False,
+    )
 
-        # Display assistant response
-        st.markdown(f"**Assistant**: {assistant_message}")
-    else:
-        st.error("Please fill in all fields before asking.")
+    response_content = completion.choices[0].message.content
+
+    # Store assistant response in the chat history
+    st.session_state.messages.append({"role": "assistant", "content": response_content})
+
+    # Display assistant response
+    with st.chat_message(name="assistant"):
+        st.markdown(response_content)
