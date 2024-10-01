@@ -10,7 +10,7 @@ load_dotenv()
 API_KEY = os.environ.get('GOOGLE_API_KEY')  # Make sure to set your API key in the .env file
 
 # Set up the API endpoint and model
-API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent'
+API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-001'
 headers = {
     'Content-Type': 'application/json',
 }
