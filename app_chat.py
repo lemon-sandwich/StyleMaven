@@ -49,17 +49,25 @@ if user_input := st.chat_input("Ask me anything about fashion..."):
         {"role": "user", "content": user_input}
     ]
 
-    # Generate a response from the Groq API
-    completion = client.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=messages,
-        temperature=1,
-        max_tokens=1024,
-        top_p=1,
-        stream=False,
-    )
+    try:
+        # Generate a response from the Groq API
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=messages,
+            temperature=1,
+            max_tokens=1024,
+            top_p=1,
+            stream=False,
+        )
 
-    response_content = completion.choices[0].message.content
+        # Ensure response is valid
+        if completion.choices and len(completion.choices) > 0:
+            response_content = completion.choices[0].message.content
+        else:
+            response_content = "Sorry, I couldn't generate a response."
+
+    except Exception as e:
+        response_content = f"Error: {str(e)}"
 
     # Store assistant response in the chat history
     st.session_state.messages.append({"role": "assistant", "content": response_content})
