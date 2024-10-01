@@ -39,7 +39,7 @@ with st.sidebar:
     )
     st.session_state.chat_title = f'ChatSession-{st.session_state.chat_id}'
 
-st.write('# Chat with Gemini')
+st.write('# Chat with Style Maven')
 
 # Chat history
 try:
