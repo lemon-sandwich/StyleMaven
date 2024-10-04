@@ -14,18 +14,15 @@ system_message = {
 def reset_chat():
     st.session_state.messages = []
     st.session_state.chat_title = "New Chat"
-    st.session_state.questionnaire_complete = False
 
 # Initialize session state variables
 if 'messages' not in st.session_state:
     st.session_state.messages = []
     st.session_state.chat_title = "Fashion Assistant"
-if 'questionnaire_complete' not in st.session_state:
-    st.session_state.questionnaire_complete = False
-if 'show_questionnaire' not in st.session_state:
-    st.session_state.show_questionnaire = False
+if 'questionnaire_open' not in st.session_state:
+    st.session_state.questionnaire_open = False
 
-# Sidebar for user inputs
+# Sidebar for user inputs (chat will work regardless of whether questionnaire is completed)
 with st.sidebar:
     st.header("User Inputs")
     name = st.text_input("Name")
@@ -40,15 +37,15 @@ with st.sidebar:
     if st.button("Reset Chat"):
         reset_chat()
 
-# Display button to open the questionnaire
-if not st.session_state.show_questionnaire and not st.session_state.questionnaire_complete:
-    if st.button("Please fill the questionnaire"):
-        st.session_state.show_questionnaire = True
+# Button to open the questionnaire
+if st.button("Please fill the questionnaire"):
+    st.session_state.questionnaire_open = True
 
-# Display questionnaire if button is clicked and questionnaire is not completed
-if st.session_state.show_questionnaire and not st.session_state.questionnaire_complete:
+
+# Display the questionnaire if the button was clicked
+if st.session_state.questionnaire_open:
     st.header("Style Preferences Questionnaire")
-    st.write("Please answer some questions if you don't mind. It's your choice to skip some if you like.")
+    st.write("Please answer some questions. It's your choice to skip some if you like.")
 
     # Priority Questions
     style_preference = st.radio("Which style do you prefer the most?", ["Casual", "Formal", "Streetwear", "Athleisure", "Baggy"], index=0)
@@ -103,51 +100,50 @@ if st.session_state.show_questionnaire and not st.session_state.questionnaire_co
         st.session_state.questionnaire_complete = True
         st.experimental_rerun()
 
-# Display chat only if the questionnaire is completed
-if st.session_state.questionnaire_complete:
-    st.title(st.session_state.chat_title)
+# Chat function (this will work regardless of the questionnaire status)
+st.title(st.session_state.chat_title)
 
-    # Display all previous chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# Display all previous chat messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    # User input for the chat
-    user_input = st.chat_input("Ask anything about fashion...")
-    if user_input:
-        # Store user message in the chat history
-        st.session_state.messages.append({"role": "user", "content": user_input})
+# User input for the chat
+user_input = st.chat_input("Ask anything about fashion...")
+if user_input:
+    # Store user message in the chat history
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Prepare messages for the API call
-        messages = [
-            system_message,
-            {"role": "user", "content": f"User input - Name: {name}, Age: {age}, Location: {location}, Gender: {gender}, Ethnicity: {ethnicity}, Height: {height}, Weight: {weight}, Skin Tone: {skin_tone}, Style Preference: {style_preference}, Color Palette: {color_palette}, Everyday Style: {everyday_style}, Preferred Prints: {preferred_prints}, Season: {season_preference}, Priority: {outfit_priority}, Experimenting: {experiment_with_trends}, Accessories: {accessories}, Fit: {fit_preference}, Material: {material_preference}, Top Preference: {top_preference}, Bottom Preference: {bottom_preference}, Outerwear Preference: {outerwear_preference}, Footwear Preference: {footwear_preference}, Dress Frequency: {dress_frequency}, Layering Preference: {layering_preference}, Jeans Fit: {jeans_fit}, Formal Wear Frequency: {formal_wear_frequency}, Sportswear Preference: {sportswear_preference}, Party Outfit: {party_outfit}, Confidence in Style: {confidence_in_style}, Follow Fashion Trends: {follow_fashion_trends}, Look for Inspiration: {look_for_inspiration}, Wardrobe Satisfaction: {wardrobe_satisfaction}, Unique Style: {unique_style}, Outfit Struggle: {outfit_struggle}, Fashion Preference: {fashion_preference}, Gender Neutral Clothing: {gender_neutral_clothing}, Special Occasion Attire: {special_occasion_attire}, Trendsetter: {trendsetter}, AI Usefulness: {ai_usefulness}, Trust in AI: {trust_in_ai}, AI Preference: {ai_preference}, AI Usage Frequency: {ai_usage_frequency}, AI Match Preferences: {ai_match_preferences}, AI Recommendation: {ai_recommendation}, AI Understanding Style: {ai_understanding_style}, More Personalized Recommendations: {more_personalized_recommendations}, Event Suggestions: {event_suggestions}, AI Improvements: {ai_improvements}"},
-            {"role": "user", "content": user_input}
-        ]
+    # Prepare messages for the API call
+    messages = [
+        system_message,
+        {"role": "user", "content": f"User input - Name: {name}, Age: {age}, Location: {location}, Gender: {gender}, Ethnicity: {ethnicity}, Height: {height}, Weight: {weight}, Skin Tone: {skin_tone}, Style Preference: {style_preference}, Color Palette: {color_palette}, Everyday Style: {everyday_style}"},
+        {"role": "user", "content": user_input}
+    ]
 
-        try:
-            # Generate a response from the Groq API
-            completion = client.chat.completions.create(
-                model="llama3-8b-8192",
-                messages=messages,
-                temperature=1,
-                max_tokens=1024,
-                top_p=1,
-                stream=False,
-            )
+    try:
+        # Generate a response from the Groq API
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=messages,
+            temperature=1,
+            max_tokens=1024,
+            top_p=1,
+            stream=False,
+        )
 
-            # Ensure response is valid
-            if completion.choices and len(completion.choices) > 0:
-                response_content = completion.choices[0].message.content
-            else:
-                response_content = "Sorry, I couldn't generate a response."
+        # Ensure response is valid
+        if completion.choices and len(completion.choices) > 0:
+            response_content = completion.choices[0].message.content
+        else:
+            response_content = "Sorry, I couldn't generate a response."
 
-        except Exception as e:
-            response_content = f"Error: {str(e)}"
+    except Exception as e:
+        response_content = f"Error: {str(e)}"
 
-        # Store assistant response in the chat history
-        st.session_state.messages.append({"role": "assistant", "content": response_content})
+    # Store assistant response in the chat history
+    st.session_state.messages.append({"role": "assistant", "content": response_content})
 
-        # Display assistant response
-        with st.chat_message(name="assistant"):
-            st.markdown(response_content)
+    # Display assistant response
+    with st.chat_message(name="assistant"):
+        st.markdown(response_content)
