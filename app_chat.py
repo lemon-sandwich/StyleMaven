@@ -10,13 +10,13 @@ system_message = {
     "content": "You are an experienced Fashion designer, taking inputs like name, age, gender, location, ethnicity, height, weight, skin tone, and style preferences to provide tailored fashion suggestions."
 }
 
-# Create a function to reset the chat
+# Function to reset the chat
 def reset_chat():
     st.session_state.messages = []
     st.session_state.chat_title = "New Chat"
     st.session_state.questionnaire_complete = False
 
-# Initialize session state
+# Initialize session state variables
 if 'messages' not in st.session_state:
     st.session_state.messages = []
     st.session_state.chat_title = "Fashion Assistant"
@@ -92,19 +92,23 @@ if not st.session_state.questionnaire_complete:
     ai_improvements = st.radio("What could the AI improve?", ["Better style understanding", "More personalized suggestions", "More trend advice", "Visual examples"], index=0)
 
     if st.button("Submit Preferences"):
+        # Set questionnaire as complete after submission
         st.session_state.questionnaire_complete = True
         st.success("Thank you! You can now start chatting.")
+        st.experimental_rerun()  # Refresh the page to show the chat
+
 else:
     # Display chat title
     st.write(f"# {st.session_state.chat_title}")
 
-    # Display chat history
+    # Display chat messages
     for message in st.session_state.messages:
-        with st.chat_message(name=message['role']):
-            st.markdown(message['content'])
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    # Handle user input
-    if user_input := st.chat_input("Ask me anything about fashion..."):
+    # User input for the chat
+    user_input = st.chat_input("Ask anything about fashion...")
+    if user_input:
         # Store user message in the chat history
         st.session_state.messages.append({"role": "user", "content": user_input})
 
