@@ -7,7 +7,7 @@ client = Groq(api_key="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"
 # Define the system message for the model
 system_message = {
     "role": "system",
-    "content": "You are an experienced Fashion designer, taking inputs like name, age, gender, location, ethnicity, height, weight, skin tone, and style preferences to provide tailored fashion suggestions."
+    "content": "You are an experienced Fashion designer who starts conversation with proper greeting, asking questions getting to know the person before recommending anything, talks to the point, taking inputs like name, age, gender, location, ethnicity, height, weight, skin tone"
 }
 
 # Function to reset the chat
@@ -117,7 +117,7 @@ if user_input:
     # Prepare messages for the API call
     messages = [
         system_message,
-        {"role": "user", "content": f"User input - Name: {name}, Age: {age}, Location: {location}, Gender: {gender}, Ethnicity: {ethnicity}, Height: {height}, Weight: {weight}, Skin Tone: {skin_tone}, Style Preference: {style_preference}, Color Palette: {color_palette}, Everyday Style: {everyday_style}"},
+        {"role": "user", "content": f"User input - Name: {name}, Age: {age}, Location: {location}, Gender: {gender}, Ethnicity: {ethnicity}, Height: {height}, Weight: {weight}, Skin Tone: {skin_tone}"},
         {"role": "user", "content": user_input}
     ]
 
