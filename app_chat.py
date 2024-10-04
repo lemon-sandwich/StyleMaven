@@ -22,6 +22,8 @@ if 'messages' not in st.session_state:
     st.session_state.chat_title = "Fashion Assistant"
 if 'questionnaire_complete' not in st.session_state:
     st.session_state.questionnaire_complete = False
+if 'show_questionnaire' not in st.session_state:
+    st.session_state.show_questionnaire = False
 
 # Sidebar for user inputs
 with st.sidebar:
@@ -38,8 +40,13 @@ with st.sidebar:
     if st.button("Reset Chat"):
         reset_chat()
 
-# Display questionnaire if not completed
-if not st.session_state.questionnaire_complete:
+# Display button to open the questionnaire
+if not st.session_state.show_questionnaire and not st.session_state.questionnaire_complete:
+    if st.button("Please fill the questionnaire"):
+        st.session_state.show_questionnaire = True
+
+# Display questionnaire if button is clicked and questionnaire is not completed
+if st.session_state.show_questionnaire and not st.session_state.questionnaire_complete:
     st.header("Style Preferences Questionnaire")
     st.write("Please answer some questions if you don't mind. It's your choice to skip some if you like.")
 
@@ -91,17 +98,16 @@ if not st.session_state.questionnaire_complete:
     event_suggestions = st.radio("Is the AI helpful in suggesting outfits for events?", ["Yes", "No", "Sometimes"], index=0)
     ai_improvements = st.radio("What could the AI improve?", ["Better style understanding", "More personalized suggestions", "More trend advice", "Visual examples"], index=0)
 
-    if st.button("Submit Preferences"):
-        # Set questionnaire as complete after submission
+    # Submit button for questionnaire
+    if st.button("Submit Questionnaire"):
         st.session_state.questionnaire_complete = True
-        st.success("Thank you! You can now start chatting.")
-        st.experimental_rerun()  # Refresh the page to show the chat
+        st.experimental_rerun()
 
-else:
-    # Display chat title
-    st.write(f"# {st.session_state.chat_title}")
+# Display chat only if the questionnaire is completed
+if st.session_state.questionnaire_complete:
+    st.title(st.session_state.chat_title)
 
-    # Display chat messages
+    # Display all previous chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
