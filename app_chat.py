@@ -1,4 +1,5 @@
-import streamlit as st 
+import streamlit as st
+import pandas as pd
 from groq import Groq
 
 # Initialize the Groq client with your API key
@@ -7,7 +8,7 @@ client = Groq(api_key="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"
 # Define the system message for the model
 system_message = {
     "role": "system",
-    "content": "You are an experienced Fashion designer who starts conversation with proper greeting, asking questions getting to know the person before recommending anything, talks to the point, taking inputs like name, age, gender, location, ethnicity, height, weight, skin tone"
+    "content": "You are an experienced Fashion designer who starts conversation with proper greet, ask questions making the user comfortable before giving suggestions, stays to the point, taking inputs like name, age, gender, location, ethnicity, height, weight, skin tone"
 }
 
 # Function to reset the chat
@@ -21,6 +22,8 @@ if 'messages' not in st.session_state:
     st.session_state.chat_title = "Fashion Assistant"
 if 'questionnaire_open' not in st.session_state:
     st.session_state.questionnaire_open = False
+if 'questionnaire_submitted' not in st.session_state:
+    st.session_state.questionnaire_submitted = False
 
 # Sidebar for user inputs (chat will work regardless of whether questionnaire is completed)
 with st.sidebar:
@@ -41,9 +44,8 @@ with st.sidebar:
 if st.button("Please fill the questionnaire"):
     st.session_state.questionnaire_open = True
 
-
 # Display the questionnaire if the button was clicked
-if st.session_state.questionnaire_open:
+if st.session_state.questionnaire_open and not st.session_state.questionnaire_submitted:
     st.header("Style Preferences Questionnaire")
     st.write("Please answer some questions. It's your choice to skip some if you like.")
 
@@ -97,8 +99,31 @@ if st.session_state.questionnaire_open:
 
     # Submit button for questionnaire
     if st.button("Submit Questionnaire"):
-        st.session_state.questionnaire_complete = True
-        st.experimental_rerun()
+        # Store questionnaire responses in a DataFrame
+        questionnaire_data = {
+            "Name": name,
+            "Age": age,
+            "Location": location,
+            "fashion_preference": fashion_preference,
+            "unique_style": unique_style,
+            "follow_fashion_trends": follow_fashion_trends,
+            "footwear_preference": footwear_preference,
+            "material_preference": material_preference,
+            "Style Preference": style_preference,
+            "Color Palette": color_palette,
+            "Everyday Style": everyday_style,
+            "preferred_prints": preferred_prints,
+            "ai_usefulness": ai_usefulness     
+        }
+        
+        df = pd.DataFrame([questionnaire_data])  # Create DataFrame from dictionary
+
+        # Append to CSV file
+        df.to_csv("questionnaire_responses.csv", mode='a', header=not pd.io.common.file_exists("questionnaire_responses.csv"), index=False)
+        
+        st.session_state.questionnaire_open = False
+        st.session_state.questionnaire_submitted = True
+        st.success("Thank you for completing the questionnaire!")
 
 # Chat function (this will work regardless of the questionnaire status)
 st.title(st.session_state.chat_title)
